@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Portfolio Editor</title>
+<link rel="icon" type="image/png" href="assets/img/favicon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;700&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+/* Utility layout: form column on the left, live preview of the real site on the right. */
+:root {
+  --bg: #f4f1f8; --panel: #ffffff; --ink: #2b1820; --muted: #6a5a66; --line: #e1d6ea;
+  --blue: #3131e0; --on-blue: #fff; --violet: #8b5fd1; --danger: #b42f2f; --soft: #efe8f5;
+  --body: "Mukta", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Spline Sans Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0f0b16; --panel: #18121f; --ink: #efe8f4; --muted: #a797ad; --line: #2e2440;
+    --blue: #9d9dff; --on-blue: #120d1a; --violet: #a585ec; --danger: #ff8a8a; --soft: #221a2e; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); display: grid; grid-template-rows: auto 1fr; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; padding: .8rem max(16px, 1.2rem); background: var(--panel); border-bottom: 1px solid var(--line); }
+.topbar h1 { font-size: 1.05rem; margin: 0 auto 0 0; font-weight: 700; display: flex; align-items: center; gap: .6rem; }
+.topbar h1 small { font-weight: 400; color: var(--muted); font-size: .85rem; }
+.status { font-family: var(--mono); font-size: .75rem; color: var(--muted); }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: .45rem .9rem; cursor: pointer; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: .4rem; }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: var(--on-blue); }
+.btn.small { padding: .2rem .55rem; font-size: .85rem; border-radius: 6px; }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--danger); }
+
+.layout { display: grid; grid-template-columns: minmax(340px, 480px) minmax(0, 1fr); min-height: 0; }
+.form { overflow-y: auto; padding: 1rem max(16px, 1.2rem) 4rem; border-right: 1px solid var(--line); }
+.preview { display: grid; grid-template-rows: auto 1fr; min-height: 0; background: var(--soft); }
+.preview-bar { display: flex; gap: .5rem; align-items: center; padding: .5rem 1rem; font-size: .85rem; color: var(--muted); }
+.preview-bar .seg { margin-left: auto; display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.preview-bar .seg button { border: 0; background: var(--panel); padding: .3rem .8rem; cursor: pointer; }
+.preview-bar .seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.frame-wrap { min-height: 0; display: flex; justify-content: center; padding: 0 1rem 1rem; }
+.frame-wrap iframe { width: 100%; height: 100%; border: 1px solid var(--line); border-radius: 10px; background: #fff; transition: width .25s; }
+.frame-wrap.phone iframe { width: 390px; }
+
+.banner { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: .8rem 1rem; margin-bottom: 1rem; font-size: .95rem; display: grid; gap: .5rem; }
+.banner ol { margin: 0; padding-left: 1.2rem; }
+.banner code { font-family: var(--mono); font-size: .85em; background: var(--panel); padding: 0 .3em; border-radius: 4px; }
+
+details.section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: .8rem; }
+details.section > summary { list-style: none; cursor: pointer; padding: .85rem 1rem; display: flex; align-items: center; gap: .6rem; font-weight: 700; }
+details.section > summary::-webkit-details-marker { display: none; }
+details.section > summary::before { content: "▸"; color: var(--muted); transition: transform .2s; }
+details.section[open] > summary::before { transform: rotate(90deg); }
+details.section > summary .count { font-family: var(--mono); font-size: .72rem; color: var(--muted); font-weight: 400; margin-left: auto; }
+.section-body { padding: 0 1rem 1rem; display: grid; gap: .9rem; }
+.section-help { color: var(--muted); font-size: .9rem; margin: -.3rem 0 0; }
+
+.field { display: grid; gap: .3rem; }
+.field > label, .field > .label { font-size: .85rem; font-weight: 500; }
+.field .help { font-size: .8rem; color: var(--muted); }
+.field input[type="text"], .field input[type="email"], .field input[type="url"], .field input[type="number"], .field textarea {
+  width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: .5rem .65rem; min-width: 0;
+}
+.field textarea { min-height: 5.5rem; resize: vertical; line-height: 1.45; }
+.field input:focus, .field textarea:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--blue) 18%, transparent); }
+.check { display: flex; align-items: center; gap: .5rem; font-size: .92rem; }
+.check input { width: 1.05rem; height: 1.05rem; accent-color: var(--blue); }
+.image-row { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: .6rem; align-items: center; }
+.thumb { width: 3rem; height: 3rem; border-radius: 6px; background: var(--soft) center / cover no-repeat; border: 1px solid var(--line); }
+
+.list { display: grid; gap: .6rem; }
+.list-label { font-size: .85rem; font-weight: 500; }
+.item { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.item > .item-head { display: flex; align-items: center; gap: .4rem; padding: .45rem .5rem .45rem .8rem; }
+.item > .item-head .item-title { flex: 1; min-width: 0; font-weight: 500; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.item > .item-head .item-title.empty { color: var(--muted); font-style: italic; font-weight: 400; }
+.item > .item-body { padding: .2rem .8rem .9rem; display: grid; gap: .75rem; }
+.item.simple { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; padding: .5rem; align-items: start; }
+.item.simple .tools { display: grid; gap: .25rem; }
+.icon-btn { border: 0; background: transparent; cursor: pointer; width: 1.9rem; height: 1.9rem; border-radius: 6px; color: var(--muted); font-size: .95rem; }
+.icon-btn:hover { background: var(--soft); color: var(--ink); }
+.icon-btn.del:hover { color: var(--danger); }
+.icon-btn:disabled { opacity: .3; cursor: default; background: transparent; }
+.add-btn { justify-self: start; border: 1px dashed var(--line); background: transparent; border-radius: 8px; padding: .4rem .8rem; cursor: pointer; color: var(--blue); font-weight: 500; }
+.add-btn:hover { border-color: var(--blue); }
+.empty-note { font-size: .88rem; color: var(--muted); }
+
+.modal { position: fixed; inset: 0; background: rgba(10, 6, 16, .55); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.modal .box { background: var(--panel); border-radius: 12px; padding: 1.2rem; width: min(52rem, 100%); max-height: 90vh; display: grid; gap: .8rem; grid-template-rows: auto 1fr auto; }
+.modal textarea { width: 100%; min-height: 20rem; font-family: var(--mono); font-size: .8rem; border: 1px solid var(--line); border-radius: 8px; padding: .6rem; background: var(--bg); }
+.modal .row { display: flex; gap: .5rem; justify-content: flex-end; flex-wrap: wrap; }
+.toast { position: fixed; bottom: 1rem; left: 50%; translate: -50% 0; background: var(--ink); color: var(--panel); padding: .55rem 1rem; border-radius: 8px; font-size: .9rem; z-index: 60; }
+
+@media (max-width: 900px) {
+  body { grid-template-rows: auto auto; height: auto; }
+  .layout { grid-template-columns: 1fr; }
+  .form { border-right: 0; overflow: visible; }
+  .preview { height: 80vh; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <h1>Portfolio editor <small>for content.js</small></h1>
+  <span class="status" id="status">Loaded content.js</span>
+  <a class="btn ghost" href="index.html" target="_blank" rel="noopener">Open site ↗</a>
+  <button class="btn" type="button" id="reset-btn">Discard changes</button>
+  <button class="btn" type="button" id="code-btn">Show code</button>
+  <button class="btn primary" type="button" id="download-btn">Download content.js</button>
+</header>
+
+<div class="layout">
+  <div class="form">
+    <div class="banner">
+      <strong>How it works</strong>
+      <ol>
+        <li>Edit anything below. The preview updates as you type.</li>
+        <li>Your changes are kept in this browser until you save them.</li>
+        <li>Click <b>Download content.js</b> and put it in your site folder, replacing the old <code>content.js</code>.</li>
+        <li>Upload the folder (or commit to GitHub). Your site is updated.</li>
+      </ol>
+      <span>New pictures: copy them into <code>assets/img/</code> first, then type <code>assets/img/your-file.jpg</code> in a picture box.</span>
+    </div>
+    <div class="banner" id="draft-banner" hidden>
+      <span>You have unsaved changes from an earlier visit. They’re loaded below.</span>
+    </div>
+    <div id="form-root"></div>
+  </div>
+
+  <div class="preview">
+    <div class="preview-bar">
+      <span>Live preview</span>
+      <div class="seg" role="group" aria-label="Preview width">
+        <button type="button" id="pv-desktop" aria-pressed="true">Desktop</button>
+        <button type="button" id="pv-phone" aria-pressed="false">Phone</button>
+      </div>
+    </div>
+    <div class="frame-wrap" id="frame-wrap">
+      <iframe id="preview" title="Live preview of your site" src="index.html?preview"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="code-modal" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="code-title">
+    <strong id="code-title">Your content.js</strong>
+    <textarea id="code-text" readonly spellcheck="false"></textarea>
+    <div class="row">
+      <span class="status" id="copy-status" style="margin-right:auto"></span>
+      <button class="btn" type="button" id="code-close">Close</button>
+      <button class="btn primary" type="button" id="code-copy">Copy all</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="confirm-modal" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="confirm-title" style="grid-template-rows:auto auto auto; width:min(28rem,100%)">
+    <strong id="confirm-title">Discard your changes?</strong>
+    <p style="margin:0;color:var(--muted)">This goes back to what’s in your content.js file. Changes you haven’t downloaded will be lost.</p>
+    <div class="row">
+      <button class="btn" type="button" id="confirm-no">Keep editing</button>
+      <button class="btn primary" type="button" id="confirm-yes">Discard changes</button>
+    </div>
+  </div>
+</div>
+
+<script src="content.js?v=20261024a"></script>
+<script src="assets/js/editor.js?v=20261024a"></script>
+</body>
+</html>
